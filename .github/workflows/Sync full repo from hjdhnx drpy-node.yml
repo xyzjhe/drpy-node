@@ -1,0 +1,50 @@
+name: Sync full repo from hjdhnx/drpy-node
+on:
+  schedule:
+    - cron: '0 */6 * * *' # 每6小时触发一次（UTC）
+  workflow_dispatch: # 支持手动触发
+
+jobs:
+  sync_full:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          fetch-depth: 0 # 完整历史
+
+      - name: Set up Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream and fetch
+        run: |
+          git remote add upstream https://github.com/hjdhnx/drpy-node.git || true
+          git fetch upstream
+
+      - name: Merge upstream/main into your main
+        run: |
+          git merge upstream/main --allow-unrelated-histories -m "Merge upstream main into local main" || echo "Nothing to merge"
+
+          # 保留本地 workflow 文件
+          git checkout HEAD -- .github/workflows
+
+          # 提交其他更新（如果有）
+          git add .
+          git commit -m "Merge upstream main, preserve local workflows" || echo "No changes to commit"
+
+          # 推送到远程 main
+          git push origin main
+
+  cleanup_runs:
+    runs-on: ubuntu-latest
+    needs: sync_full
+    steps:
+      - name: Delete old workflow runs, keep last 10
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          retain_days: 0
+          keep_minimum_runs: 10
