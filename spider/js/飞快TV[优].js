@@ -1,3 +1,15 @@
+/*
+@header({
+  searchable: 2,
+  filterable: 1,
+  quickSearch: 0,
+  title: '飞快TV',
+  author: 'EylinSir',
+  '类型': '影视',
+  lang: 'ds'
+})
+*/
+
 var rule = {
     title: '飞快TV',
     author: 'EylinSir',

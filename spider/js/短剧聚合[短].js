@@ -1,3 +1,15 @@
+/*
+@header({
+  searchable: 1,
+  filterable: 1,
+  quickSearch: 1,
+  title: '聚合短剧[短]',
+  author: 'EylinSir',
+  '类型': '聚合短剧',
+  lang: 'ds'
+})
+*/
+
 globalThis.aggConfig = {
   keys: 'd3dGiJc651gSQ8w1',
   charMap: {
