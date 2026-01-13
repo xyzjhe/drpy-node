@@ -499,7 +499,8 @@ class Spider(BaseSpider):
 
     def __init__(self, query_params=None, t4_api=None):
         super().__init__(query_params=query_params, t4_api=t4_api)
-        self.localProxyUrl = self.getProxyUrl() + '&type='
+        self.localProxyUrl = self.getProxyUrl() + '&siteType=3&siteKey=hipy_py_哔哩哔哩&type='
+        print('localProxyUrl:', self.localProxyUrl)
         self.time_diff1 = {V: [0, 300], A0: [300, 900], AL: [900, 1800], AQ: [1800, 3600],
                            '5': [3600, 0x4ee2d6d415b85acef80ffffffff]};
         self.time_diff = L;
