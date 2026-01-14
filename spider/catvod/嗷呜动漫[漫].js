@@ -5,6 +5,13 @@ title: '嗷呜动漫', author: '小可乐/v6.1.1'
     "host": "xxxx", //站点网址
     "timeout": 6000  //请求超时，单位毫秒
 }
+@header({
+  searchable: 1,
+  filterable: 1,
+  quickSearch: 1,
+  title: '嗷呜动漫[漫]',
+  lang: 'cat'
+})
 */
 import {Crypto} from 'assets://js/lib/cat.js';
 
