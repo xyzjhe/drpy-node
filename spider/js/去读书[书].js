@@ -26,9 +26,7 @@ var rule = {
     filterable: 0,
     timeout: 10000,
     play_parse: true,
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
-    },
+    headers: { 'User-Agent': 'MOBILE_UA' },
 
     一级: async function () {
         let {input, pdfa, pdfh, pd} = this;
@@ -56,16 +54,11 @@ var rule = {
         let html = await request(input);
         let VOD = {
             vod_name: pdfh(html, '[property="og:novel:book_name"]&&content') || '',
-            type_name: '',
             vod_pic: pd(html, '.divbox.cf img&&src') || '',
             vod_content: pdfh(html, '.tabcontent .tabvalue:eq(0)&&Text') || '',
             vod_remarks: pdfh(html, 'h3 a&&Text') || '',
-            vod_year: '',
-            vod_area: '',
             vod_actor: pdfh(html, '[property="og:novel:author"]&&content') || '',
-            vod_director: '',
-            vod_play_from: '去读书网',
-            vod_play_url: ''
+            vod_play_from: '去读书网'
         };
         VOD.vod_director = VOD.vod_actor; // 复用作者信息
         let tocUrl = pd(html, 'a:contains(点击阅读)&&href') || '';
@@ -106,7 +99,7 @@ var rule = {
         }
         return setResult(d);
     },
-    // 懒加载解析（章节内容）
+
     lazy: async function () {
         let {input, pdfh} = this;
         let html = await request(input);
