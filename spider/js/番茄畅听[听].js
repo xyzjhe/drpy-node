@@ -3,7 +3,7 @@
   searchable: 1,
   filterable: 0,
   quickSearch: 0,
-  title: '番茄听书',
+  title: '番茄畅听',
   author: 'EylinSir',
   '类型': '听书',
   lang: 'ds'
@@ -13,7 +13,7 @@
 var rule = {
     类型: '听书',
     author: 'EylinSir',
-    title: '番茄听书',
+    title: '番茄畅听',
     host: 'https://qkfqapi.vv9v.cn',
     url: '',
     searchUrl: '/api/search?key=**&tab_type=2&offset=((fypage-1)*10)',
@@ -64,7 +64,7 @@ var rule = {
             vod_content: data.abstract || data.book_abstract_v2,
             vod_remarks: data.sub_info,
             vod_director: data.author,
-            vod_play_from: '番茄听书',
+            vod_play_from: '番茄畅听',
             vod_play_url: urls
         };
     },
