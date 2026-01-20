@@ -1,31 +1,24 @@
 <?php
-// 设置返回为 JSON
-// http://127.0.0.1:9980/config.php
 header('Content-Type: application/json; charset=utf-8');
-
-// 当前目录
-$dir = __DIR__;
-
-// 当前脚本名
+// http://127.0.0.1:9980/config.php
+// ==================
+// 1. 生成 sites
+// ==================
+$dir  = __DIR__;
 $self = basename(__FILE__);
-
-// 扫描目录
 $files = scandir($dir);
 
 $sites = [];
 
 foreach ($files as $file) {
-    // 只处理 php 文件
     if (pathinfo($file, PATHINFO_EXTENSION) !== 'php') {
         continue;
     }
 
-    // 排除自身和 index.php
     if ($file === $self || $file === 'index.php') {
         continue;
     }
 
-    // 文件名（不含 .php）
     $filename = pathinfo($file, PATHINFO_FILENAME);
 
     $sites[] = [
@@ -39,7 +32,31 @@ foreach ($files as $file) {
     ];
 }
 
-// 输出 JSON
+// ==================
+// 2. 尝试加载 ../drpy-node/index.json
+// ==================
+$indexJsonPath = realpath($dir . '/../drpy-node/index.json');
+
+if ($indexJsonPath && is_file($indexJsonPath)) {
+    $content = file_get_contents($indexJsonPath);
+    $json = json_decode($content, true);
+
+    // JSON 合法并且是数组
+    if (is_array($json)) {
+        // 替换 sites
+        $json['sites'] = $sites;
+
+        echo json_encode(
+            $json,
+            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
+        );
+        exit;
+    }
+}
+
+// ==================
+// 3. 找不到或失败，回退只返回 sites
+// ==================
 echo json_encode(
     ["sites" => $sites],
     JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
