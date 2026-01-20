@@ -150,14 +150,15 @@ export function getParsesDict(host) {
 
         let hostName = host;
         try {
-            if (typeof host === 'string' && host) {
-                const u = new URL(host.includes('://') ? host : `http://${host}`);
-                hostName = u.hostname || host;
-            }
+            const raw = String(host || '');
+            const hasScheme = raw.includes('://');
+            const u = new URL(hasScheme ? raw : `http://${raw}`);
+            const hostname = u.hostname || raw;
+            const safeHostname = hostname.includes(':') ? `[${hostname}]` : hostname;
+            hostName = hasScheme ? `${u.protocol}//${safeHostname}` : safeHostname;
         } catch (e) {
-            const withoutProto = String(host || '').replace(/^[a-zA-Z]+:\/\//, '');
-            const withoutPath = withoutProto.split('/')[0];
-            hostName = withoutPath.includes(':') ? withoutPath.split(':')[0] : withoutPath;
+            const raw = String(host || '').replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//, '').split('/')[0];
+            hostName = raw.startsWith('[') ? raw.split(']')[0] + ']' : raw.split(':')[0];
         }
 
         let var_dict = {
