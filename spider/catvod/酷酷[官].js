@@ -5,7 +5,7 @@
   searchable: 1,
   filterable: 1,
   quickSearch: 1,
-  title: '优酷视频',
+  title: '酷酷[官]',
   lang: 'cat'
   })
  */

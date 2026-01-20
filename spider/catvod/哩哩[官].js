@@ -5,7 +5,7 @@
   searchable: 1,
   filterable: 1,
   quickSearch: 1,
-  title: 'B站',
+  title: '哩哩[官]',
   lang: 'cat'
   })
  */

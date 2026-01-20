@@ -5,7 +5,7 @@
   searchable: 1,
   filterable: 1,
   quickSearch: 1,
-  title: '爱奇艺视频',
+  title: '奇奇[官]',
   lang: 'cat'
   })
  */

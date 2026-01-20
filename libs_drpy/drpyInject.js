@@ -733,11 +733,22 @@ class BaseSpider {
         this.play = this.playerContent;
         this.homeVod = this.homeVideoContent;
         this.proxy = this.localProxy;
+        // this.fetch = request;
     }
 
     async fetch(url, options) {
         const content = (await req(url, options)).content;
-        return {data: content.parseX};
+        return {
+            content,
+            get data() { // data尝试返回object
+                try {
+                    // console.log('get data:', this.content);
+                    return this.content.parseX;
+                } catch (e) {
+                    return {};
+                }
+            }
+        };
     }
 
     async homeContent() {

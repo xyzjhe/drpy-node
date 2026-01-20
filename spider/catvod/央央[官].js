@@ -5,7 +5,7 @@
   searchable: 1,
   filterable: 1,
   quickSearch: 1,
-  title: '央视大全',
+  title: '央央[官]',
   lang: 'cat'
   })
  */

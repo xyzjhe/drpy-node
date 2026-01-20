@@ -5,7 +5,7 @@
   searchable: 1,
   filterable: 1,
   quickSearch: 1,
-  title: '芒果TV',
+  title: '果果[官]',
   lang: 'cat'
   })
  */
