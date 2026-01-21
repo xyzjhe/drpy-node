@@ -1,4 +1,4 @@
-import {readFileSync, existsSync, readdirSync, statSync} from 'fs';
+import {readFileSync, existsSync, readdirSync, statSync, unlinkSync} from 'fs';
 import {createReadStream} from 'fs';
 import {execSync} from 'child_process';
 import path from 'path';
@@ -53,7 +53,7 @@ const findLatestPackage = (projectDir, packageName) => {
             .map(file => {
                 const filePath = path.join(parentDir, file);
                 const stats = statSync(filePath);
-                return {file, filePath, mtime: stats.mtime};
+                return {file, filePath, mtime: stats.mtime, size: stats.size};
             })
             .sort((a, b) => b.mtime - a.mtime);
 
@@ -170,6 +170,16 @@ export default (fastify, options, done) => {
             }
 
             const projectName = path.basename(projectRootDir);
+            const templatePath = path.join(projectRootDir, 'public', 'download.html');
+
+            if (!existsSync(templatePath)) {
+                return reply.code(500).send({
+                    success: false,
+                    message: '下载页面模板不存在',
+                });
+            }
+
+            let html = readFileSync(templatePath, 'utf-8');
 
             const files = [
                 {name: `${projectName}.7z`, desc: '7z 压缩包（标准版）'},
@@ -178,134 +188,40 @@ export default (fastify, options, done) => {
                 {name: `${projectName}-green.zip`, desc: 'ZIP 压缩包（绿色版，不含[密]文件）'}
             ];
 
-            const html = `
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>下载 ${projectName}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .download-list {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .download-item {
-            margin: 10px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .download-info {
-            flex: 1;
-        }
-        .download-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .download-item a {
-            text-decoration: none;
-            font-weight: bold;
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-            border: none;
-            cursor: pointer;
-        }
-        .download-item a:hover {
-            background-color: #0056b3;
-        }
-        .copy-btn {
-            text-decoration: none;
-            font-weight: bold;
-            padding: 8px 16px;
-            background-color: #6c757d;
-            color: white;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-            border: none;
-            cursor: pointer;
-        }
-        .copy-btn:hover {
-            background-color: #5a6268;
-        }
-        .file-type {
-            color: #666;
-            font-size: 14px;
-        }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #28a745;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
-            display: none;
-            z-index: 1000;
-        }
-    </style>
-</head>
-<body>
-    <h1>${projectName} 下载中心</h1>
-    <div class="toast" id="toast">链接已复制到剪贴板</div>
-    <div class="download-list">
-        ${files.map(file => {
+            const formatFileSize = (bytes) => {
+                if (!bytes || bytes === 0) return '未打包';
+                const mb = bytes / (1024 * 1024);
+                return mb.toFixed(2) + ' MB';
+            };
+
+            const downloadItems = files.map(file => {
+                const latestPackage = findLatestPackage(projectRootDir, file.name);
+                const fileSize = latestPackage ? formatFileSize(latestPackage.size) : '未打包';
+                const sizeClass = latestPackage ? '' : ' not-packed';
                 const token = generateDownloadToken(file.name);
                 const downloadUrl = `/admin/download/${file.name}?auth=${token}`;
-                return `
-        <div class="download-item">
-            <div class="download-info">
-                <strong>${file.name}</strong>
-                <div class="file-type">${file.desc}</div>
-            </div>
-            <div class="download-actions">
-                <a href="${downloadUrl}">下载</a>
-                <button class="copy-btn" onclick="copyLink('${downloadUrl}')">复制链接</button>
-            </div>
-        </div>`;
-            }).join('')}
-    </div>
-    <script>
-        function copyLink(url) {
-            const fullUrl = window.location.origin + url;
-            navigator.clipboard.writeText(fullUrl).then(() => {
-                const toast = document.getElementById('toast');
-                toast.style.display = 'block';
-                setTimeout(() => {
-                    toast.style.display = 'none';
-                }, 2000);
-            });
-        }
-    </script>
-</body>
-</html>`;
+                return '<div class="download-item">' +
+                    '<div class="download-info">' +
+                    '<strong>' + file.name + '</strong>' +
+                    '<div class="file-type">' + file.desc + '</div>' +
+                    '</div>' +
+                    '<div class="download-size' + sizeClass + '">' + fileSize + '</div>' +
+                    '<div class="download-actions">' +
+                    '<a href="' + downloadUrl + '">下载</a>' +
+                    '<button class="copy-btn" onclick="copyLink(\'' + downloadUrl + '\')">复制链接</button>' +
+                    '</div>' +
+                    '</div>';
+            }).join('');
+
+            html = html.replace(/\{\{projectName\}\}/g, projectName);
+            html = html.replace(/\{\{downloadItems\}\}/g, downloadItems);
 
             reply.type('text/html').send(html);
         } catch (error) {
-            console.error('下载页面加载失败:', error.message);
+            console.error('获取下载页面失败:', error.message);
             return reply.code(500).send({
                 success: false,
-                message: '加载下载页面失败',
+                message: '获取下载页面失败',
                 error: error.message,
             });
         }
@@ -382,6 +298,54 @@ export default (fastify, options, done) => {
             return reply.code(500).send({
                 success: false,
                 message: '下载失败',
+                error: error.message,
+            });
+        }
+    });
+
+    fastify.post('/admin/download/clear', {
+        preHandler: validateBasicAuth
+    }, async (request, reply) => {
+        try {
+            if (IS_VERCEL) {
+                return reply.code(403).send({
+                    success: false,
+                    message: 'Vercel 环境不支持文件操作',
+                });
+            }
+
+            const parentDir = path.dirname(projectRootDir);
+            const projectName = path.basename(projectRootDir);
+            const files = readdirSync(parentDir);
+            const pattern = new RegExp(`^${projectName.replace(/\./g, '\\.')}-\\d{8}(-green)?\\.(7z|zip)$`);
+
+            let deletedCount = 0;
+            const deletedFiles = [];
+
+            for (const file of files) {
+                if (pattern.test(file)) {
+                    const filePath = path.join(parentDir, file);
+                    try {
+                        unlinkSync(filePath);
+                        deletedFiles.push(file);
+                        deletedCount++;
+                    } catch (error) {
+                        console.error(`删除文件失败: ${file}`, error.message);
+                    }
+                }
+            }
+
+            return reply.send({
+                success: true,
+                count: deletedCount,
+                deletedFiles,
+                message: `已清除 ${deletedCount} 个历史文件`
+            });
+        } catch (error) {
+            console.error('清除历史文件失败:', error.message);
+            return reply.code(500).send({
+                success: false,
+                message: '清除历史文件失败',
                 error: error.message,
             });
         }
