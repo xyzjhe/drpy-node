@@ -258,25 +258,107 @@
 
         .toast {
             position: fixed;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-20px);
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
             background: linear-gradient(135deg, var(--success), #059669);
             color: white;
-            padding: 14px 28px;
-            border-radius: 12px;
-            display: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
             z-index: 1000;
             font-weight: 600;
-            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
-            opacity: 0;
-            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
         .toast.show {
-            display: block;
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
+            transform: translateX(0);
+        }
+
+        .copy-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .copy-modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 90%;
+            width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+        }
+
+        .copy-modal-content h3 {
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .copy-modal-content p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .copy-modal-content input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+        }
+
+        .copy-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .copy-modal-actions button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .copy-modal-actions button:first-child {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .copy-modal-actions button:first-child:hover {
+            background: rgba(148, 163, 184, 0.3);
+        }
+
+        .copy-modal-actions button:last-child {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+        }
+
+        .copy-modal-actions button:last-child:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
         @media (max-width: 768px) {
@@ -315,8 +397,24 @@
             .toast {
                 left: 10px;
                 right: 10px;
+                top: 10px;
                 padding: 10px 14px;
                 font-size: 0.85rem;
+            }
+
+            .copy-modal-content {
+                width: 90%;
+                max-width: 90%;
+                padding: 16px;
+            }
+
+            .copy-modal-content h3 {
+                font-size: 1rem;
+            }
+
+            .copy-modal-content input {
+                font-size: 0.8rem;
+                padding: 8px 10px;
             }
         }
 
@@ -382,11 +480,73 @@
     <script>
         function copyLink(url) {
             const fullUrl = window.location.origin + url;
-            navigator.clipboard.writeText(fullUrl).then(() => {
-                showToast('链接已复制到剪贴板');
-            }).catch(err => {
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(fullUrl).then(() => {
+                    showToast('链接已复制到剪贴板');
+                }).catch(err => {
+                    fallbackCopy(fullUrl);
+                });
+            } else {
+                fallbackCopy(fullUrl);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('链接已复制到剪贴板');
+                } else {
+                    showManualCopy(text);
+                }
+            } catch (err) {
+                showManualCopy(text);
+            }
+            
+            document.body.removeChild(textarea);
+        }
+
+        function showManualCopy(url) {
+            const modal = document.createElement('div');
+            modal.className = 'copy-modal';
+            modal.innerHTML = `
+                <div class="copy-modal-content">
+                    <h3>手动复制链接</h3>
+                    <p>您的浏览器不支持自动复制，请手动复制以下链接：</p>
+                    <input type="text" value="${url}" readonly>
+                    <div class="copy-modal-actions">
+                        <button onclick="this.closest('.copy-modal').remove()">关闭</button>
+                        <button onclick="selectAndCopy(this)">复制</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function selectAndCopy(btn) {
+            const input = btn.closest('.copy-modal-content').querySelector('input');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('链接已复制到剪贴板');
+                    btn.closest('.copy-modal').remove();
+                }
+            } catch (err) {
                 showToast('复制失败，请手动复制');
-            });
+            }
         }
 
         function showToast(message) {
