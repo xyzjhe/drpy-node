@@ -1,15 +1,3 @@
-/*
-@header({
-  searchable: 1,
-  filterable: 1,
-  quickSearch: 0,
-  title: '独播库',
-  author: 'EylinSir',
-  '类型': '影视',
-  lang: 'ds'
-})
-*/
-
 var rule = {
     类型: '影视',
     author: 'EylinSir',
@@ -87,8 +75,8 @@ var rule = {
     },
 
     搜索: async function() {
-        let data = await this.get(`/vodsearch?wd=${encodeURIComponent(this.KEY)}`);
-        let url = this.getSignedUrl('/vodsearch') + `&wd=${encodeURIComponent(this.KEY)}`;
+        let data = await this.get(`/vodsearch?wd=${this.KEY}`);
+        let url = this.getSignedUrl('/vodsearch') + `&wd=${this.KEY}`;
         let resp = await _fetch(url, { headers: this.headers });
         return setResult(this.format(JSON.parse(await resp.text())));
     },
