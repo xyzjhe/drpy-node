@@ -4,12 +4,9 @@
   filterable: 1,
   quickSearch: 0,
   title: '番茄小说[书]',
-<<<<<<< HEAD
   author: '道长',
   '类型': '小说',
-=======
   logo: 'https://www.18zf.net/d/file/p/2023/1107/3ty5orktxrc.jpg',
->>>>>>> 94401a8 (Update multiple files)
   lang: 'ds'
 })
 */
@@ -40,6 +37,7 @@ var rule = {
     title: '番茄小说[书]',
     desc: '番茄小说纯js版本',
     host: 'https://fanqienovel.com/',
+    logo: 'https://www.18zf.net/d/file/p/2023/1107/3ty5orktxrc.jpg',
     homeUrl: 'https://fanqienovel.com/api/author/book/category_list/v0/',
     url: '/api/author/library/book_list/v0/?page_count=18&page_index=(fypage-1)&gender=1&category_id=fyclass&creation_status=-1&word_count=-1&book_type=-1&sort=0#fyfilter',
     // searchUrl: fqweb_host + '/search?query=**&page=fypage',
