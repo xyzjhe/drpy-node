@@ -4,9 +4,12 @@
   filterable: 1,
   quickSearch: 0,
   title: '番茄小说[书]',
+<<<<<<< HEAD
   author: '道长',
   '类型': '小说',
+=======
   logo: 'https://www.18zf.net/d/file/p/2023/1107/3ty5orktxrc.jpg',
+>>>>>>> 94401a8 (Update multiple files)
   lang: 'ds'
 })
 */
