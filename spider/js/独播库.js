@@ -118,6 +118,4 @@ var rule = {
         }
         try { return base64Decode(res.replace(/\./g, '=')); } catch (e) { return ''; }
     },
-
-
 };
