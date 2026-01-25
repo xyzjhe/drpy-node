@@ -59,7 +59,7 @@ class Spider extends BaseSpider {
         
         return [
             'class' => $classes,
-            'filters' => $filters
+            'filters' => (object)$filters
         ];
     }
 
@@ -253,7 +253,7 @@ class Spider extends BaseSpider {
             'parse' => 0,
             'playUrl' => '',
             'url' => $url, // 仅作记录
-            'header' => [],
+            'header' => (object)[],
             // 如果客户端支持直接显示文本内容，通常放在 header 或其他字段？
             // 实际上，播放接口返回 content 可能需要客户端特殊处理
             // 这里我们返回一个 data url 或者 模拟的 html
@@ -339,3 +339,6 @@ class Spider extends BaseSpider {
         return $result;
     }
 }
+
+// 运行爬虫
+(new Spider())->run();

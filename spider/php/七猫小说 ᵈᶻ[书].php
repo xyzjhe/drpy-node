@@ -95,7 +95,7 @@ class Spider extends BaseSpider {
 
         return [
             'class' => $classes,
-            'filters' => $filters
+            'filters' => (object)$filters
         ];
     }
 
@@ -290,14 +290,14 @@ class Spider extends BaseSpider {
             return [
                 'parse' => 0,
                 'url' => 'novel://' . json_encode(['title' => "Error: $code - $msg ($preview)", 'content' => ''], JSON_UNESCAPED_UNICODE),
-                'header' => []
+                'header' => (object)[]
             ];
         }
         
         return [
             'parse' => 0,
             'url' => 'novel://' . json_encode(['title' => $title, 'content' => $content], JSON_UNESCAPED_UNICODE),
-            'header' => []
+            'header' => (object)[]
         ];
     }
     
@@ -352,3 +352,6 @@ class Spider extends BaseSpider {
         return trim($decrypted);
     }
 }
+
+// 运行爬虫
+(new Spider())->run();

@@ -5,7 +5,7 @@ class Spider extends BaseSpider {
     private $HOST = 'http://read.api.duodutek.com';
     private $UA = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.87 Safari/537.36';
     
-    // 固定�?API 参数
+    // 固定的 API 参数
     private $COMMON_PARAMS = [
         "productId" => "2a8c14d1-72e7-498b-af23-381028eb47c0",
         "vestId" => "2be070e0-c824-4d0e-a67a-8f688890cadb",
@@ -31,12 +31,14 @@ class Spider extends BaseSpider {
             ["type_id" => "1291", "type_name" => "古代"]
         ];
 
-        // 首页推荐：取第一个分类的前几个视�?        $list = $this->categoryContent('1287', 1)['list'];
+        // 首页推荐：取第一个分类的前几个视频
+        $list = $this->categoryContent('1287', 1)['list'];
         $list = array_slice($list, 0, 12);
 
         return [
             'class' => $classes,
-            'list' => $list
+            'list' => $list,
+            'filters' => (object)[]
         ];
     }
 
@@ -57,11 +59,11 @@ class Spider extends BaseSpider {
         if ($jsonObj && isset($jsonObj['data']['datalist'])) {
             foreach ($jsonObj['data']['datalist'] as $vod) {
                 $list[] = [
-                    // 仿照�?Python：id@@name@@introduction 存储
+                    // 仿照原 Python：id@@name@@introduction 存储
                     'vod_id' => $vod['id'] . '@@' . $vod['name'] . '@@' . ($vod['introduction'] ?? ''),
                     'vod_name' => $vod['name'],
                     'vod_pic' => $vod['icon'],
-                    'vod_remarks' => $vod['heat'] . '万播�?
+                    'vod_remarks' => $vod['heat'] . '万播放'
                 ];
             }
         }
@@ -77,7 +79,7 @@ class Spider extends BaseSpider {
             $bookName = $parts[1];
             $intro = $parts[2] ?? '';
         } else {
-            // 兼容旧格�?id@intro
+            // 兼容旧格式 id@intro
             $parts = explode('@', $did);
             $bookId = $parts[0];
             $bookName = '';
@@ -100,7 +102,7 @@ class Spider extends BaseSpider {
                 // 提取短剧播放地址
                 if (isset($chapter['shortPlayList'][0]['chapterShortPlayVoList'][0]['shortPlayUrl'])) {
                     $vUrl = $chapter['shortPlayList'][0]['chapterShortPlayVoList'][0]['shortPlayUrl'];
-                    $epName = "�? . ($index + 1) . "�?;
+                    $epName = "第" . ($index + 1) . "集";
                     $playUrls[] = $epName . '$' . $vUrl;
                 }
             }
@@ -118,7 +120,7 @@ class Spider extends BaseSpider {
     }
 
     public function searchContent($key, $quick = false, $pg = 1) {
-        // �?Python 代码�?searchContentPage �?pass，故此处留空返回
+        // 原 Python 代码中 searchContentPage 为 pass，故此处留空返回
         return $this->pageResult([], $pg);
     }
 

@@ -251,4 +251,55 @@ $link = $this->pd($html, 'a.next&&href', 'https://m.example.com/list/');
 
 ---
 
+## 5. Flutter 环境适配与 PHP 8.5+ 兼容性
+
+在将 PHP 源部署到 Flutter 环境（如 TVBox 及其变种）并使用高版本 PHP (如 8.5.1) 时，可能会遇到类型严格性导致的兼容问题。
+
+### 5.1 核心报错：`type 'String' is not a subtype of type 'int' of 'index'`
+**现象**：
+本地 `test_runner.php` 测试一切正常，但在 Flutter 端运行时报错，提示 String 类型无法作为 List 的索引。
+
+**原因**：
+PHP 脚本执行结束后**没有输出任何内容**。
+- `test_runner.php` 是手动实例化类并调用方法，所以能拿到结果。
+- Flutter 端通过 CLI 调用 PHP 脚本，如果脚本末尾没有主动调用运行逻辑，输出为空字符串。
+- 适配层收到空字符串后，可能默认处理为 `[]` (空 List)。后续逻辑尝试以 Map 方式（如 `['class']`）访问这个 List 时，就会触发 Dart 的类型错误。
+
+**解决方案**：
+确保每个源文件末尾都包含自动运行指令：
+```php
+// 必须在文件末尾加入此行
+(new Spider())->run();
+```
+
+### 5.2 严格类型处理 (JSON 空对象)
+**现象**：
+PHP 的空数组 `[]` 在 `json_encode` 时默认为 `[]` (List)。如果在 PHP 8.5+ 环境下，客户端期望的是 Map `{}` (Object)，可能会导致解析错误或类型不匹配。
+
+**解决方案**：
+对于明确应该是对象的字段（如 `header`, `filters`, `ext`），如果为空，必须强制转换为 Object。
+```php
+// 错误 (输出 [])
+'header' => []
+
+// 正确 (输出 {})
+'header' => (object)[]
+```
+
+### 5.3 HTTPS 与 SSL 证书验证
+**现象**：
+在某些 Flutter 环境或 Android 设备上，cURL 请求 HTTPS 站点失败，无返回或报错。这是 because 系统证书库可能不完整或 curl 配置过严。
+
+**解决方案**：
+显式关闭 SSL 证书校验。`BaseSpider` 的 `fetch` 方法已默认处理，但在重写 `fetch` 或使用原生 cURL 时需注意：
+```php
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+```
+
+### 5.4 健壮性建议
+1.  **JSON 解析容错**：`json_decode($str ?: '{}', true)`，避免对空字符串解析报错。
+2.  **空 ID 容错**：在 `detailContent` 或 `playerContent` 中，检查 ID 是否为空，避免向 API 发送非法请求导致崩溃。
+
+---
 *本文档更新于 2026/01/25，基于 Trae IDE 协作环境。*

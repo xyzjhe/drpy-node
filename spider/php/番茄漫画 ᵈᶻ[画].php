@@ -34,7 +34,7 @@ class Spider extends BaseSpider {
         
         return [
             'class' => $classes,
-            'filters' => []
+            'filters' => (object)[]
         ];
     }
 
@@ -176,11 +176,11 @@ class Spider extends BaseSpider {
         }
         
         if (empty($pics)) {
-            return ['parse' => 0, 'url' => '', 'header' => []];
+            return ['parse' => 0, 'url' => '', 'header' => (object)[]];
         }
         
         // 漫画通常使用 pics:// 协议
-        return ['parse' => 0, 'url' => 'pics://' . implode('&&', $pics), 'header' => []];
+        return ['parse' => 0, 'url' => 'pics://' . implode('&&', $pics), 'header' => (object)[]];
     }
 
     // 辅助方法：解析列表
@@ -227,3 +227,6 @@ class Spider extends BaseSpider {
         return $cookies[array_rand($cookies)];
     }
 }
+
+// 运行爬虫
+(new Spider())->run();

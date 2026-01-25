@@ -48,7 +48,7 @@ foreach ($files as $file) {
 
     $filename = pathinfo($file, PATHINFO_FILENAME);
 
-    $sites[] = [
+    $site = [
         "key"          => "php_" . $filename,
         "name"         => $filename . "(PHP)",
         "type"         => 4,
@@ -57,6 +57,14 @@ foreach ($files as $file) {
         "quickSearch"  => 1,
         "changeable"   => 0
     ];
+
+    if (strpos($filename, '[书]') !== false) {
+        $site['类型'] = '小说';
+    } elseif (strpos($filename, '[画]') !== false) {
+        $site['类型'] = '漫画';
+    }
+
+    $sites[] = $site;
 }
 
 // ==================

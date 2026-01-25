@@ -22,10 +22,10 @@ class Spider extends BaseSpider {
     public function homeContent($filter) {
         $classes = [
             ['type_id' => '1', 'type_name' => '电影'],
-            ['type_id' => '2', 'type_name' => '电视�?],
+            ['type_id' => '2', 'type_name' => '电视剧'],
             ['type_id' => '3', 'type_name' => '综艺'],
             ['type_id' => '5', 'type_name' => '动漫'],
-            ['type_id' => '4', 'type_name' => '纪录�?],
+            ['type_id' => '4', 'type_name' => '纪录片'],
             ['type_id' => '6', 'type_name' => '短剧'],
             ['type_id' => '7', 'type_name' => '特别节目'],
             ['type_id' => '8', 'type_name' => '少儿内容']
@@ -36,7 +36,8 @@ class Spider extends BaseSpider {
         
         return [
             'class' => $classes,
-            'list' => $data['list'] ?? []
+            'list' => $data['list'] ?? [],
+            'filters' => (object)[]
         ];
     }
 
@@ -58,21 +59,26 @@ class Spider extends BaseSpider {
             CURLOPT_POST => 1,
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_HTTPHEADER => $this->getHeaders(),
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false // 补全SSL校验关闭，避免HTTPS请求失败
         ]);
 
-        $jsonObj = json_decode($jsonStr, true);
+        $jsonObj = json_decode($jsonStr ?: '{}', true);
         $list = [];
 
-        if (isset($jsonObj['data']['list'])) {
+        if (isset($jsonObj['data']['list']) && is_array($jsonObj['data']['list'])) {
             $list = $this->arr2vods($jsonObj['data']['list']);
         }
+        // 补全total参数，适配分页逻辑
+        $total = isset($jsonObj['data']['pagecount']) ? $jsonObj['data']['pagecount'] * 60 : 0;
 
-        return $this->pageResult($list, $pg, $jsonObj['data']['pagecount'] ?? 0);
+        return $this->pageResult($list, $pg, $total, 60);
     }
 
     public function detailContent($ids) {
-        $id = is_array($ids) ? $ids[0] : $ids;
+        $id = is_array($ids) ? ($ids[0] ?? '') : $ids;
+        if (empty($id)) return ['list' => []]; // 空ID容错
+        
         $apiUrl = $this->HOST . '/api.php/player/details/';
         
         $payload = ['id' => (string)$id];
@@ -81,27 +87,28 @@ class Spider extends BaseSpider {
             CURLOPT_POST => 1,
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_HTTPHEADER => $this->getHeaders(),
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false
         ]);
 
-        $jsonObj = json_decode($jsonStr, true);
+        $jsonObj = json_decode($jsonStr ?: '{}', true);
         $vod = [];
 
-        if (isset($jsonObj['detailData'])) {
+        if (isset($jsonObj['detailData']) && is_array($jsonObj['detailData'])) {
             $d = $jsonObj['detailData'];
             $vod = [
-                'vod_id' => $d['vod_id'],
-                'vod_name' => $d['vod_name'],
-                'vod_pic' => $d['vod_pic'],
-                'vod_remarks' => $d['vod_remarks'],
-                'vod_year' => $d['vod_year'],
-                'vod_area' => $d['vod_area'],
-                'vod_actor' => $d['vod_actor'],
-                'vod_director' => $d['vod_director'],
-                'vod_content' => $d['vod_content'],
-                'vod_play_from' => $d['vod_play_from'],
-                'vod_play_url' => $d['vod_play_url'],
-                'type_name' => $d['vod_class']
+                'vod_id' => $d['vod_id'] ?? '',
+                'vod_name' => $d['vod_name'] ?? '未知影片',
+                'vod_pic' => $d['vod_pic'] ?? '',
+                'vod_remarks' => $d['vod_remarks'] ?? '',
+                'vod_year' => $d['vod_year'] ?? '',
+                'vod_area' => $d['vod_area'] ?? '',
+                'vod_actor' => $d['vod_actor'] ?? '',
+                'vod_director' => $d['vod_director'] ?? '',
+                'vod_content' => $d['vod_content'] ?? '暂无影片介绍',
+                'vod_play_from' => $d['vod_play_from'] ?? '',
+                'vod_play_url' => $d['vod_play_url'] ?? '',
+                'type_name' => $d['vod_class'] ?? ''
             ];
         }
 
@@ -109,7 +116,7 @@ class Spider extends BaseSpider {
     }
 
     public function searchContent($key, $quick = false, $pg = 1) {
-        if ($pg > 1) return $this->pageResult([], $pg, 0);
+        if (empty($key) || $pg > 1) return $this->pageResult([], $pg, 0);
 
         $apiUrl = $this->HOST . '/api.php/search/syntheticalSearch/';
         $payload = ['keyword' => $key];
@@ -118,23 +125,24 @@ class Spider extends BaseSpider {
             CURLOPT_POST => 1,
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_HTTPHEADER => $this->getHeaders(),
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false
         ]);
 
-        $jsonObj = json_decode($jsonStr, true);
+        $jsonObj = json_decode($jsonStr ?: '{}', true);
         $videos = [];
 
-        if (isset($jsonObj['data'])) {
+        if (isset($jsonObj['data']) && is_array($jsonObj['data'])) {
             $data = $jsonObj['data'];
-            if (!empty($data['chasingFanCorrelation'])) {
+            if (!empty($data['chasingFanCorrelation']) && is_array($data['chasingFanCorrelation'])) {
                 $videos = array_merge($videos, $this->arr2vods($data['chasingFanCorrelation']));
             }
-            if (!empty($data['moviesCorrelation'])) {
+            if (!empty($data['moviesCorrelation']) && is_array($data['moviesCorrelation'])) {
                 $videos = array_merge($videos, $this->arr2vods($data['moviesCorrelation']));
             }
         }
 
-        return $this->pageResult($videos, $pg, 1);
+        return $this->pageResult($videos, $pg, count($videos));
     }
 
     public function playerContent($flag, $id, $vipFlags = []) {
@@ -157,7 +165,8 @@ class Spider extends BaseSpider {
             $url = $jsonObj['data']['url'];
         }
 
-        // 匹配第三方大站开启解�?        if (preg_match('/(?:www\.iqiyi|v\.qq|v\.youku|www\.mgtv|www\.bilibili)\.com/', $url)) {
+        // 匹配第三方大站开启解析
+        if (preg_match('/(?:www\.iqiyi|v\.qq|v\.youku|www\.mgtv|www\.bilibili)\.com/', $url)) {
             $jx = 1;
         }
 
@@ -175,15 +184,16 @@ class Spider extends BaseSpider {
     private function arr2vods($arr) {
         $videos = [];
         foreach ($arr as $i) {
+            // 修复符号错误
             $remarks = ($i['vod_serial'] == '1') 
-                ? $i['vod_serial'] . '�? 
-                : '评分�? . ($i['vod_score'] ?? $i['vod_douban_score'] ?? '0');
+                ? $i['vod_serial'] . '集' 
+                : '评分' . ($i['vod_score'] ?? $i['vod_douban_score'] ?? '0');
 
             $videos[] = [
-                'vod_id' => $i['vod_id'],
-                'vod_name' => $i['vod_name'],
-                'vod_pic' => $i['vod_pic'],
-                'vod_remarks' => $remarks
+                'vod_id' => $i['vod_id'] ?? '',
+                'vod_name' => $i['vod_name'] ?? '',
+                'vod_pic' => $i['vod_pic'] ?? '',
+                'vod_remarks' => $remarks ?? ''
             ];
         }
         return $videos;

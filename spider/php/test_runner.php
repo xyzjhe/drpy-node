@@ -52,7 +52,8 @@ try {
         echo "    - 分类示例: " . implode(', ', $classNames) . (count($classes) > 5 ? ' ...' : '') . "\n";
         
         if (!empty($filters)) {
-            echo "    - 包含筛选配置 (Filters): " . count($filters) . " 组\n";
+            $filterCount = is_object($filters) ? count(get_object_vars($filters)) : count($filters);
+            echo "    - 包含筛选配置 (Filters): " . $filterCount . " 组\n";
         }
     } else {
         echo "    ⚠️ 警告: 未获取到分类列表 (class 为空)\n";
