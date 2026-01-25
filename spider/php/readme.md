@@ -302,4 +302,71 @@ curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 2.  **空 ID 容错**：在 `detailContent` 或 `playerContent` 中，检查 ID 是否为空，避免向 API 发送非法请求导致崩溃。
 
 ---
-*本文档更新于 2026/01/25，基于 Trae IDE 协作环境。*
+
+## 6. 最近实战经验汇总 (2026/01 更新)
+
+### 6.1 漫画/图片源的标准协议 (`pics://`)
+在开发漫画或图片类源时，`playerContent` 返回的 `url` 字段应使用 `pics://` 协议。
+- **格式**: `pics://图片链接1&&图片链接2&&图片链接3...`
+- **注意**: 严禁使用非标准的 `mange://` 或其他自定义协议，除非客户端明确支持。使用 `pics://` 可确保通用播放器能正确识别为图片轮播模式。
+
+### 6.2 静态资源智能过滤
+在解析漫画图片列表时，网页往往混杂大量的图标、LOGO、背景图或占位图（如 `grey.gif`）。必须建立过滤机制，否则会严重影响阅读体验。
+
+**推荐过滤代码**:
+```php
+$uniqueImages = [];
+foreach ($imageList as $img) {
+    // 1. 去重
+    if (in_array($img, $uniqueImages)) continue;
+    
+    // 2. 关键词过滤
+    if (strpos($img, "grey.gif") !== false) continue; // 占位图
+    if (strpos($img, "logo") !== false) continue;     // 网站LOGO
+    if (strpos($img, "icon") !== false) continue;     // 图标
+    if (strpos($img, "banner") !== false) continue;   // 广告横幅
+    
+    $uniqueImages[] = $img;
+}
+```
+
+### 6.3 中文参数的 URL 编码陷阱
+PHP 的 `curl` 不会自动对 URL 中的非 ASCII 字符进行编码。如果 URL 中包含中文（如搜索关键词、分类标签），**必须**手动调用 `urlencode`。
+- **错误**: `$url = "https://site.com/search?q=" . $key;`
+- **正确**: `$url = "https://site.com/search?q=" . urlencode($key);`
+未编码会导致服务端返回 400 Bad Request 或 404。
+
+### 6.4 `config.php` 类型定义
+在 `config.php` 中注册源时，请注意字段命名。
+- **正确**: `"类型": "小说"` 或 `"类型": "漫画"`
+- **错误**: 不要使用 `"categories"` 或其他自定义字段名，否则前端可能无法正确分类显示。
+
+### 6.5 PHP 8.5+ 与 Flutter JSON 深度兼容
+在 PHP 8.5.1 及 Flutter 混合环境下，JSON 格式的严谨性至关重要：
+1.  **空 Map 强制转换**: 任何应当输出为 `{}` 的字段（如 `filters`, `ext`, `header`），若为空数组，**必须**使用 `(object)[]` 或 `(object)$arr` 转换。否则 `json_encode` 会输出 `[]`，导致 Flutter 客户端报 `type 'String' is not a subtype of type 'int' of 'index'` 错误。
+2.  **Undefined Index 防御**: 数组索引访问必须使用 `?? ''` 或 `?? []` 提供默认值（如 `$item['key'] ?? ''`）。PHP 的 Warning 信息若混入 JSON 输出，会直接导致解析失败。
+
+### 6.6 HTTPS 强制适配
+Android 9+ 及 Flutter 应用默认禁止明文 HTTP 请求（Cleartext traffic not permitted）。
+- **最佳实践**: 在提取图片链接 (`vod_pic`) 时，检测并自动替换协议。
+  ```php
+  if (strpos($pic, 'http://') === 0) {
+      $pic = str_replace('http://', 'https://', $pic);
+  }
+  ```
+
+### 6.7 封面图片提取的高级策略
+针对结构复杂的详情页（如漫画站），单一规则往往不稳定：
+1.  **属性顺序无关正则**: 避免假设 `src` 在 `class` 之前或之后。使用更灵活的正则：
+    `/<img[^>]*class=["\'](?:classA|classB)["\'][^>]*src=.../`
+2.  **多级回退机制**:
+    - **L1**: 优先从元数据区域（Metadata）提取。
+    - **L2**: 若失败，尝试从内容区域（Content Block）提取第一张图。
+    - **L3**: 若仍失败，全局搜索非 Icon/Logo/Gif 的第一张大图。
+
+### 6.8 测试驱动开发 (TDD) 增强
+不要仅依赖人工查看。建议在 `test_runner.php` 中增加关键字段断言：
+- **封面检查**: 在详情页测试中显式检查 `vod_pic` 是否为空，能提早发现 80% 的解析问题。
+
+---
+*本文档更新于 2026/01/26，基于 Trae IDE 协作环境。*

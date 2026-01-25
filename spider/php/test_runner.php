@@ -123,10 +123,12 @@ try {
             }
             $playUrl = $vod['vod_play_url'] ?? '';
             $playFrom = $vod['vod_play_from'] ?? '';
+            $pic = $vod['vod_pic'] ?? '';
             $desc = $vod['vod_content'] ?? '';
             
             echo "    ✅ 通过 (耗时: {$cost}ms)\n";
             echo "    - 资源名称: $name\n";
+            echo "    - 封面图片: " . ($pic ? $pic : "⚠️ 未获取到封面") . "\n";
             echo "    - 播放源 (vod_play_from): $playFrom\n";
             
             // 检查播放地址
