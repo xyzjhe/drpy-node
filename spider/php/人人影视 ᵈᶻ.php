@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/spider.php';
+require_once __DIR__ . '/lib/spider.php';
 
 class Spider extends BaseSpider {
     private $HOST = 'https://rrsp-api.kejiqianxian.com:60425';
@@ -22,10 +22,10 @@ class Spider extends BaseSpider {
     public function homeContent($filter) {
         $classes = [
             ['type_id' => '1', 'type_name' => '电影'],
-            ['type_id' => '2', 'type_name' => '电视剧'],
+            ['type_id' => '2', 'type_name' => '电视�?],
             ['type_id' => '3', 'type_name' => '综艺'],
             ['type_id' => '5', 'type_name' => '动漫'],
-            ['type_id' => '4', 'type_name' => '纪录片'],
+            ['type_id' => '4', 'type_name' => '纪录�?],
             ['type_id' => '6', 'type_name' => '短剧'],
             ['type_id' => '7', 'type_name' => '特别节目'],
             ['type_id' => '8', 'type_name' => '少儿内容']
@@ -157,8 +157,7 @@ class Spider extends BaseSpider {
             $url = $jsonObj['data']['url'];
         }
 
-        // 匹配第三方大站开启解析
-        if (preg_match('/(?:www\.iqiyi|v\.qq|v\.youku|www\.mgtv|www\.bilibili)\.com/', $url)) {
+        // 匹配第三方大站开启解�?        if (preg_match('/(?:www\.iqiyi|v\.qq|v\.youku|www\.mgtv|www\.bilibili)\.com/', $url)) {
             $jx = 1;
         }
 
@@ -177,8 +176,8 @@ class Spider extends BaseSpider {
         $videos = [];
         foreach ($arr as $i) {
             $remarks = ($i['vod_serial'] == '1') 
-                ? $i['vod_serial'] . '集' 
-                : '评分：' . ($i['vod_score'] ?? $i['vod_douban_score'] ?? '0');
+                ? $i['vod_serial'] . '�? 
+                : '评分�? . ($i['vod_score'] ?? $i['vod_douban_score'] ?? '0');
 
             $videos[] = [
                 'vod_id' => $i['vod_id'],
