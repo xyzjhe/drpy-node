@@ -1,3 +1,15 @@
+/*
+@header({
+  searchable: 1,
+  filterable: 1,
+  quickSearch: 0,
+  title: '独播库',
+  author: 'EylinSir',
+  '类型': '影视',
+  lang: 'ds'
+})
+*/
+
 var rule = {
     类型: '影视',
     author: 'EylinSir',
