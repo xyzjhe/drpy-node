@@ -189,6 +189,11 @@ class HtmlParser {
         $scheme = isset($parts['scheme']) ? $parts['scheme'] . '://' : 'http://';
         $host = isset($parts['host']) ? $parts['host'] : '';
         
+        // Handle protocol-relative URLs (starting with //)
+        if (substr($relativeUrl, 0, 2) == '//') {
+            return (isset($parts['scheme']) ? $parts['scheme'] . ':' : 'http:') . $relativeUrl;
+        }
+        
         if (substr($relativeUrl, 0, 1) == '/') {
             return $scheme . $host . $relativeUrl;
         }
