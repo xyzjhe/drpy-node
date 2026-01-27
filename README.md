@@ -20,6 +20,7 @@ nodejs作为服务端的drpy实现。全面升级异步写法
 * [本地配置接口-动态外网/局域网](/config/1?healthy=1&pwd=$pwd)
 * [其他配置接口-订阅过滤](/docs/sub.md)
 * [python环境](/docs/pyenv.md) | [DS项目环境变量说明](/docs/envdoc.md)
+* php环境(详见 spider/php/readme.md) 不在这里赘述
 * [猫源调试教程](/docs/catDebug.md)
 * [接口压测教程](/docs/httpTest.md)
 * [AI编程工具 trae](https://www.trae.ai/account-setting#subscription) | 邮编ZIP输入: 518000
