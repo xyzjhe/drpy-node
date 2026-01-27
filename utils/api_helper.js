@@ -74,6 +74,12 @@ export function getApiEngine(engines, moduleName, query, options) {
             moduleDir = options.pyDir;
             _ext = '.py';
             break;
+        case 'php':
+            // PHP引擎 - php
+            apiEngine = engines.php;
+            moduleDir = options.phpDir;
+            _ext = '.php';
+            break;
         case 'cat':
             // CatVod引擎
             apiEngine = engines.catvod;

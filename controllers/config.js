@@ -23,6 +23,7 @@ import {validateBasicAuth, validatePwd} from "../utils/api_validate.js";
 import {getSitesMap} from "../utils/sites-map.js";
 import {getParsesDict} from "../utils/file.js";
 import batchExecute from '../libs_drpy/batchExecute.js';
+import {isPhpAvailable} from '../utils/phpEnv.js';
 
 const {jsEncoder} = drpyS;
 
@@ -76,6 +77,7 @@ async function generateSiteJSON(options, requestHost, sub, pwd) {
     const jsDir = options.jsDir;
     const dr2Dir = options.dr2Dir;
     const pyDir = options.pyDir;
+    const phpDir = options.phpDir;
     const catDir = options.catDir;
     const configDir = options.configDir;
     const jsonDir = options.jsonDir;
@@ -490,6 +492,63 @@ async function generateSiteJSON(options, requestHost, sub, pwd) {
         await batchExecute(py_tasks, listener);
 
     }
+
+    // 根据用户是否启用php源去生成对应配置
+    const enable_php = ENV.get('enable_php', '1');
+    console.log('isPhpAvailable:', isPhpAvailable);
+    if (enable_php === '1' && isPhpAvailable) {
+        const php_files = readdirSync(phpDir);
+        const api_type = 4;
+        let php_valid_files = php_files.filter((file) => file.endsWith('.php') && !file.startsWith('_') && !['config.php', 'index.php', 'test_runner.php'].includes(file));
+        log(`开始生成php的T${api_type}配置，phpDir:${phpDir},源数量: ${php_valid_files.length}`);
+
+        const php_tasks = php_valid_files.map((file) => {
+            return {
+                func: async ({file, phpDir, requestHost, pwd, SitesMap}) => {
+                    const baseName = path.basename(file, '.php');
+                    let api = `${requestHost}/api/${baseName}?do=php`;
+                    let ext = '';
+                    if (pwd) {
+                        api += `&pwd=${pwd}`;
+                    }
+                    let ruleObject = {
+                        searchable: 1,
+                        filterable: 1,
+                        quickSearch: 1,
+                    };
+                    let ruleMeta = {...ruleObject};
+                    const filePath = path.join(phpDir, file);
+
+                    Object.assign(ruleMeta, {
+                        title: baseName,
+                        lang: 'php',
+                    });
+                    ruleMeta.title = enableRuleName ? ruleMeta.title || baseName : baseName;
+
+                    let fileSites = [];
+                    let key = `php_${ruleMeta.title}`;
+                    let name = `${ruleMeta.title}(PHP)`;
+                    fileSites.push({key, name, ext});
+
+                    fileSites.forEach((fileSite) => {
+                        const site = {
+                            key: fileSite.key,
+                            name: fileSite.name,
+                            type: api_type,
+                            api,
+                            ...ruleMeta,
+                            ext: fileSite.ext || "",
+                        };
+                        sites.push(site);
+                    });
+                },
+                param: {file, phpDir, requestHost, pwd, SitesMap},
+                id: file,
+            };
+        });
+        await batchExecute(php_tasks, listener);
+    }
+
     const enable_cat = ENV.get('enable_cat', '1');
     // 根据用户是否启用cat源去生成对应配置
     if (enable_cat === '1' || enable_cat === '2') {

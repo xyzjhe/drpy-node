@@ -401,6 +401,8 @@ var rule = {
                 d.push(getInput('get_enable_dr2', '查看drpy2源启用状态', images.settings));
                 d.push(genMultiInput('enable_py', '设置py源启用状态', '设置为1可启用此功能,设置为2启用T4(默认没设置也属于启动，设置其他值关闭)', images.settings));
                 d.push(getInput('get_enable_py', '查看py源启用状态', images.settings));
+                d.push(genMultiInput('enable_php', '设置php源启用状态', '设置为1可启用此功能,设置为0可关闭(默认没设置也属于启动，设置其他值关闭)', images.settings));
+                d.push(getInput('get_enable_php', '查看php源启用状态', images.settings));
                 d.push(genMultiInput('enable_cat', '设置cat源启用状态', '设置为1可启用此功能,设置为2启用T4(默认没设置也属于启动，设置其他值关闭)', images.settings));
                 d.push(getInput('get_enable_cat', '查看cat源启用状态', images.settings));
                 d.push(genMultiInput('enable_old_config', '设置兼容性配置', '设置为1可启用此功能(默认关闭)', images.settings));
@@ -1275,6 +1277,7 @@ var rule = {
             'play_proxy_mode',
             'enable_dr2',
             'enable_py',
+            'enable_php',
             'enable_cat',
             'enable_old_config',
             'enable_rule_name',
@@ -1310,6 +1313,7 @@ var rule = {
             'get_play_proxy_mode',
             'get_enable_dr2',
             'get_enable_py',
+            'get_enable_php',
             'get_enable_cat',
             'get_enable_old_config',
             'get_enable_rule_name',
