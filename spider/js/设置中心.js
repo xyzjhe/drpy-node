@@ -457,6 +457,9 @@ var rule = {
 
                 d.push(genMultiInput('PROXY_AUTH', '设置代理播放授权', '默认为drpys，可自行配置成其他值', images.settings));
                 d.push(getInput('get_PROXY_AUTH', '查看代理播放授权', images.settings));
+
+                d.push(genMultiInput('enable_self_jx', '设置启用自建解析', '默认为关闭，可自行配置成其他值(0关闭 1启用)', images.settings));
+                d.push(getInput('get_enable_self_jx', '查看启用自建解析', images.settings));
                 break;
         }
         return d
@@ -1290,6 +1293,7 @@ var rule = {
             'must_sub_code',
             'mg_hz',
             'PROXY_AUTH',
+            'enable_self_jx',
         ];
         let get_cookie_sets = [
             'get_quark_cookie',
@@ -1324,6 +1328,7 @@ var rule = {
             'get_must_sub_code',
             'get_mg_hz',
             'get_PROXY_AUTH',
+            'get_enable_self_jx',
         ];
         if (cookie_sets.includes(action) && value) {
             try {
