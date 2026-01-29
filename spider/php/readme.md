@@ -58,7 +58,7 @@ sudo apt update
 安装 CLI 版本及 Drpy 爬虫所需的常用扩展 (curl, mbstring, xml, mysql 等)：
 ```bash
 # 注意：openssl 通常已包含在核心或 common 包中，无需单独指定 php8.3-openssl
-sudo apt install php8.3-cli php8.3-curl php8.3-mbstring php8.3-xml php8.3-mysql -y
+sudo apt install php8.3-cli php8.3-curl php8.3-mbstring php8.3-xml php8.3-mysql php8.3-sqlite3 -y
 ```
 
 ### 0.5.4 验证安装
