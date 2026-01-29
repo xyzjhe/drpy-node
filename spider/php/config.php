@@ -43,7 +43,8 @@ foreach ($files as $file) {
         $file === $self ||
         strpos($file, '_') === 0 ||
         fnmatch('config*.php', $file) ||
-        stripos($file, 'test') !== false) {
+        stripos($file, 'test') !== false ||
+        stripos($file, 'bridge') !== false) {
         continue;
     }
 
