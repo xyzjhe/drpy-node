@@ -67,6 +67,15 @@ php -v
 # 输出应显示 PHP 8.3.x
 ```
 
+### 0.5.5 改init
+```bash
+php --ini
+cd /etc/php/8.3/cli
+vi php.ini
+# 找到 extension=sqlite3 并取消注释(用到下面安装命令安装完了会自动配置好，这里还是给注释掉)
+apt-get install php8.3-sqlite3
+```
+
 ## 1. 核心架构与工具
 
 ### 1.1 基础框架 (`lib/spider.php`)
