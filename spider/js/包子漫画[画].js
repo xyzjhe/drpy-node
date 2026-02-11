@@ -4,15 +4,20 @@
   filterable: 0,
   quickSearch: 0,
   title: '包子漫画',
-  '类型': '影视',
+  '类型': '漫画',
+  logo: 'https://cn.czmanga.com/favicon.ico',
   lang: 'ds'
 })
 */
 
 var rule = {
     title: '包子漫画',
+    类型: '漫画',
+    logo: 'https://cn.czmanga.com/favicon.ico',
     host: 'https://cn.czmanga.com',
-    url: '/classify?type=all&region=fyclass&state=all&filter=%2a',
+    url: '/classify?region=fyclass&fyfilter',
+    filter_url: 'type={{fl.type}}&state={{fl.state}}&filter={{fl.filter}}',
+    filter: 'H4sIAAAAAAAAA42TW3PSQBSA/0seO3XGV/vmXev9bnX6sNKUrA2bFrIKdJgBIr0qUp0p+oJ1WgTGQq06iAXsn2GT8C/cpGfZ5cXx7ez35ezZcza7rE1oU0+XtQU9pU1pCRvZujapERTT+dLbaLvZHF+/QCbVw+8Ix6xQHzr1APMFMk0tM3ki/OOK3+8POk1wCT2OkdTs13fWeu1134NepM+0zGxgT6rbqUW1+GGXVTb/v7ib2/TWDkGYGBGER847OpAuYlDVsbd7w90iuCid10lUul7ed/rgUpiozs3ve9tb4JIUkZSy53rNdQrgntMlrOR5tS32uwtuQTd4psyrrkq3hMecV3wlXVBv3DaO/faG7JAfhw9ttO/Ku+HHBtiYRZNYSXWLda+0AtKm2JR9uM0vgz87oF4GaVLt9NztshibPmdRqdY+DI7WQaUNRNKGOjjPafqfs6DjehLLc7qlircvZhpFFi9oySb2aqz6Y9ARM5hDhKYNWXbo9FknLyRNGEof2a6/mxMnskg0ov4ApSJrfQVpWDRqqbdcrrJORxwWR3g3Ug4/NdzeKBORmHqV3/g1/xQPwUAWUWfOCm3WckYXbaOxhzCPTVuPy6fAmmX34M2/n8LEaO+z585fABiGgl+8dPkK8DAU/Or0tevAw1DwGzdv3QYehoLfuXvvPvAwFPzBw0eAg0jQxzNPgAaRoKdPnQEaRLz32cxfZbwNSYoEAAA=',
     searchUrl: '/search?q=wd',
     searchable: 2,
     quickSearch: 0,
@@ -57,7 +62,7 @@ var rule = {
         let {input, orId, HOST, pdfa, pdfh, pd} = this;
         let html = await request(input);
         let VOD = {};
-        VOD.vod_name = pdfh(html, '.comics-detail__title&&Text&&Text');
+        VOD.vod_name = pdfh(html, '.comics-detail__title&&Text');
         VOD.type_name = '';
         VOD.vod_pic = pd(html, 'amp-img&&src');
         VOD.vod_content = pdfh(html, '.comics-detail__desc&&Text');
