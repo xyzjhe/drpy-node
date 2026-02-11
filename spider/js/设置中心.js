@@ -435,7 +435,7 @@ var rule = {
                     vod_pic: images.lives,
                     vod_desc: "流式代理mp4等视频"
                 });
-                d.push(genMultiInput('enable_doh', '设置DOH启用状态', '设置为0关闭(默认1开启)', images.settings));
+                d.push(genMultiInput('enable_doh', '设置DOH启用状态', '设置为1开启(默认0关闭)', images.settings));
                 d.push(getInput('get_enable_doh', '查看DOH启用状态', images.settings));
                 d.push(genMultiInput('enable_system_proxy', '设置系统代理启用状态', '设置为0关闭(默认1开启)', images.settings));
                 d.push(getInput('get_enable_system_proxy', '查看系统代理启用状态', images.settings));

@@ -27,8 +27,8 @@ const configPath = path.resolve(__dirname, '../config/player.json');
 
 // Initialize Resolver Lazy
 function getResolver() {
-    // Check if DOH is enabled via ENV (default: 1/true)
-    const enableDoh = ENV.get('enable_doh', '1') === '1' || ENV.get('enable_doh') === 'true';
+    // Check if DOH is enabled via ENV (default: 0/false)
+    const enableDoh = ENV.get('enable_doh', '0') === '1' || ENV.get('enable_doh') === 'true';
     if (!enableDoh) {
         // console.log('[DOH] DOH is disabled via ENV.');
         return null;
