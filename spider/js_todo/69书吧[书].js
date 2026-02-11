@@ -1,0 +1,22 @@
+var rule = {
+    title: '69书吧',
+    host: 'https://www.69shu.pro',
+    url: '/fyclass/fypage.html',
+    searchUrl: '/search/wd/**/page/fypage.html',
+    searchable: 2,
+    quickSearch: 0,
+    headers: {
+        'User-Agent': 'MOBILE_UA',
+    },
+    timeout: 5000,
+    class_name: '玄幻&修真&都市&历史',
+    class_url: 'xuanhuan&xiuzhen&dushi&lishi',
+    play_parse: true,
+    lazy: '',
+    limit: 6,
+    推荐: '.list;a&&title;img&&src;.desc&&Text;a&&href',
+    double: true,
+    一级: '.list;a&&title;img&&src;.desc&&Text;a&&href',
+    二级: '*',
+    搜索: '.list;a&&title;img&&src;.desc&&Text;a&&href',
+}
