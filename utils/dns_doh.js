@@ -15,6 +15,7 @@ import {fileURLToPath} from 'url';
 import {HttpsProxyAgent} from 'https-proxy-agent';
 import {exec} from 'child_process';
 import util from 'util';
+import {ENV} from './env.js'; // Import ENV utility
 
 const execAsync = util.promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +27,13 @@ const configPath = path.resolve(__dirname, '../config/player.json');
 
 // Initialize Resolver Lazy
 function getResolver() {
+    // Check if DOH is enabled via ENV (default: 1/true)
+    const enableDoh = ENV.get('enable_doh', '1') === '1' || ENV.get('enable_doh') === 'true';
+    if (!enableDoh) {
+        // console.log('[DOH] DOH is disabled via ENV.');
+        return null;
+    }
+
     if (resolver) return resolver;
     try {
         // Load config if not loaded
@@ -65,6 +73,13 @@ let checkPromise = null;
 const PROXY_CACHE_TTL = 60000; // 60 seconds cache
 
 export function getSystemProxy() {
+    // Check if system proxy detection is enabled via ENV (default: 1/true)
+    const enableProxy = ENV.get('enable_system_proxy', '1') === '1' || ENV.get('enable_system_proxy') === 'true';
+    if (!enableProxy) {
+        // console.log('[DOH] System proxy detection is disabled via ENV.');
+        return Promise.resolve(null);
+    }
+
     const now = Date.now();
     // 1. If cache is valid (checked within 60s), return immediately
     if (lastCheckTime > 0 && (now - lastCheckTime < PROXY_CACHE_TTL)) {
