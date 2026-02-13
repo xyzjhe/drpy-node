@@ -56,19 +56,22 @@ const ENGINES = {
 //    pg: 1,
 //    extend: '',
 //};
-async function getEngine(moduleName, query) {
+async function getEngine(moduleName, query, inject_env) {
+    // 壳子可以注入环境变量，内部自行构造env
+    inject_env = inject_env || {};
     // 获取API引擎和模块路径
     let {apiEngine, moduleDir, _ext, modulePath} = getApiEngine(ENGINES, moduleName, query, options);
 
     // 检查模块文件是否存在
     if (!existsSync(modulePath)) {
-        const error_msg=`Module ${moduleName} not found`;
+        const error_msg = `Module ${moduleName} not found`;
         console.error(error_msg);
         return "";
     }
 
     // 获取模块扩展参数
     const moduleExt = query.extend || '';
+
     /**
      * 构建环境对象
      * 为规则执行提供必要的环境信息
@@ -77,14 +80,15 @@ async function getEngine(moduleName, query) {
      * @returns {Object} 环境对象，包含各种URL和配置
      */
     function getEnv(moduleName) {
-        const proxyUrl = "";
+        const proxyUrl = inject_env.proxyUrl || "http://127.0.0.1:9978/proxy?do=node";
         const getProxyUrl = function () {
             return proxyUrl
         };
         return {
             proxyUrl,
             getProxyUrl,
-            ext: moduleExt
+            ext: moduleExt,
+            moduleName: moduleName
         }
     }
 
@@ -162,7 +166,7 @@ async function getEngine(moduleName, query) {
     // 获取页码参数
     const pg = Number(query.pg) || 1;
 
-    
+
     // 根据 query 参数决定执行逻辑
 
     // 处理播放逻辑
@@ -213,7 +217,7 @@ async function getEngine(moduleName, query) {
         // return [200, 'text/plain', 'hello world', {'User-Agent':'okhttp/3.11'}, 0];
         const result = await apiEngine.proxy(modulePath, env, query);
         return result;
-    }    
+    }
 
     // 处理强制刷新初始化逻辑
     if ('refresh' in query) {
