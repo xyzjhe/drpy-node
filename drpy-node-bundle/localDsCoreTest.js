@@ -1,5 +1,5 @@
-// import * as localtDsCore from './localtDsCore.js';
-import * as localtDsCore from './libs/localtDsCore.bundled.js';
+// import * as localtDsCore from './localDsCore.js';
+import * as localtDsCore from './libs/localDsCore.bundled.js';
 
 console.log(getEngine)
 // const a = await getEngine('爱推图[画]', {}, {proxyUrl: "xx"})

@@ -22,7 +22,7 @@ const builtins = [
 export default defineConfig({
   input: 'entry.js',
   output: {
-    file: 'libs/localtDsCore.bundled.js',
+    file: 'libs/localDsCore.bundled.js',
     format: 'esm',
     sourcemap: false,
     inlineDynamicImports: true,

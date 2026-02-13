@@ -1,2 +1,2 @@
 import './shim.js';
-export * from './localtDsCore.js';
+export * from './localDsCore.js';
