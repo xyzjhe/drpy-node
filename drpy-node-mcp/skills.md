@@ -9,14 +9,14 @@ Task: [Create/Debug/Analyze] DS Source for [URL/File]
 Steps:
 1. **Analyze/Fetch**: Use `fetch_spider_url` to inspect HTML/Headers or `read_file` to load existing code (auto-decrypted).
 2. **Develop/Refine**:
-   - Use `get_spider_template` for new files.
-   - Implement `rule` object (see KB below).
-   - For dynamic content, use `async` parsing or `lazy` loading.
-   - For novels, `lazy` returns `novel://` + JSON.
+    - Use `get_spider_template` for new files.
+    - Implement `rule` object (see KB below).
+    - For dynamic content, use `async` parsing or `lazy` loading.
+    - For novels, `lazy` returns `novel://` + JSON.
 3. **Validate**:
-   - Save via `write_file` to `spider/js/[Name].js`.
-   - Check syntax (`check_syntax`) and structure (`validate_spider`).
-   - Test rules (`debug_spider_rule`) against real content.
+    - Save via `write_file` to `spider/js/[Name].js`.
+    - Check syntax (`check_syntax`) and structure (`validate_spider`).
+    - Test rules (`debug_spider_rule`) against real content.
 ```
 
 ## Skill 2: System Maintenance
@@ -92,6 +92,27 @@ lazy: async function() { return { parse: 0, url: 'novel://' + JSON.stringify({ti
 | `log(msg)` | Console log (view in `read_logs`). |
 | `setItem(k, v)` / `getItem(k)` | Persistent storage. |
 | `urljoin(base, path)` | URL resolution. |
+
+### 5. Content Type Specifics
+
+- **Novels (`类型: '小说'`)**:
+    - `lazy` should return `novel://` followed by a JSON string of `{ title, content }`.
+    ```javascript
+    lazy: async function() {
+        let content = '...'; // Decrypted text
+        let ret = JSON.stringify({ title: 'Chapter 1', content: content });
+        return { parse: 0, url: 'novel://' + ret };
+    }
+    ```
+
+- **Comics/Images (`类型: '漫画'`)**:
+    - `lazy` should return `pics://` followed by image URLs joined by `&&`.
+    ```javascript
+    lazy: async function() {
+        let pics = ['http://img1.jpg', 'http://img2.jpg'];
+        return { parse: 0, url: 'pics://' + pics.join('&&') };
+    }
+    ```
 
 ## Tool Reference
 | Tool | Usage |
