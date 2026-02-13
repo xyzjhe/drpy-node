@@ -1,4 +1,5 @@
 import * as localtDsCore from './libs/localtDsCore.bundled.js';
 
-global.localtDsCore = localtDsCore;
-global.getEngine = getEngine;
+console.log(getEngine);
+// global.localtDsCore = localtDsCore;
+// global.getEngine = getEngine;
