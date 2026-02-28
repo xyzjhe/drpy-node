@@ -11,6 +11,8 @@
 # 本地资源管理.py - 最终修复版 + 海报获取功能（完整版）
 # 基于资源flac内置歌词正常MP3内置乱码版本.py
 # 修改：添加网络自动获取歌曲海报功能，并在详情页显示
+# 修改：歌词获取逻辑改为 网络优先 -> 本地歌词 -> 内置歌词（增强版）
+# 修改：添加详细的歌词调试日志和更多歌词源
 
 import sys
 import re
@@ -23,7 +25,7 @@ import urllib.parse
 import sqlite3
 import glob
 from pathlib import Path
-from base.spider import Spider
+from base.spider import BaseSpider
 
 # ==================== 在线直播配置 ====================
 ONLINE_LIVE_SOURCES = [
@@ -227,7 +229,7 @@ DB_FIELD_MAPPING = {
     'remarks': ['remarks', 'vod_remarks', 'remark', 'note']
 }
 
-print("ℹ️ 本地资源管理加载成功 - 最终修复版 + 海报获取功能")
+print("ℹ️ 本地资源管理加载成功 - 最终修复版 + 海报获取功能 + 歌词优先网络版 + 增强调试")
 
 
 class DatabaseReader:
@@ -337,9 +339,26 @@ class DatabaseReader:
         return None
 
 
-class Spider(Spider):
+class Spider(BaseSpider):
+    def manualVideoCheck(self):
+        pass
+
+    def homeVideoContent(self):
+        pass
+
+    def localProxy(self, params):
+        pass
+
+    def isVideoFormat(self, url):
+        pass
+
     def getName(self):
         return "本地资源管理"
+
+    def __init__(self,query_params=None, t4_api=None):
+        super().__init__(query_params,t4_api)
+        self.debug_mode = True
+
 
     def init(self, extend=""):
         super().init(extend)
@@ -420,7 +439,6 @@ class Spider(Spider):
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter)
 
-        self.debug_mode = True
 
     def log(self, msg):
         if self.debug_mode:
@@ -1653,36 +1671,82 @@ class Spider(Spider):
             return '🧲'
         return '📄'
 
-    # ==================== 精确歌词解码 ====================
-    # 修改点：直接返回第一个能解码的文本，不再评分
+    # ==================== 精确歌词解码（增强版）====================
+
+    def _is_valid_lyrics(self, text):
+        """简单验证是否为有效歌词"""
+        if not text or len(text) < 20:  # 太短的不可能是歌词
+            return False
+
+        # 检查是否包含常见歌词标记
+        lyrics_markers = ['[ti:', '[ar:', '[al:', '[by:', '[00:', '[01:', '[02:',
+                          '作词', '作曲', '编曲', '演唱', '歌词']
+
+        for marker in lyrics_markers:
+            if marker in text:
+                return True
+
+        # 检查是否包含常见时间标签格式 [mm:ss.xx]
+        if re.search(r'\[\d{2}:\d{2}\.\d{2,}\]', text):
+            return True
+
+        # 如果包含较多中文且有一定长度，也可能是歌词
+        chinese_count = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+        if chinese_count > 10 and len(text) > 100:
+            return True
+
+        return False
 
     def decode_lyrics_data(self, data):
-        """专门解码歌词数据，直接尝试常见编码，返回第一个能解码的"""
+        """专门解码歌词数据 - 增强版：确保不阻断流程"""
         if not data:
             return None
 
-        # 尝试的编码列表（按优先级）
+        # 重新排序编码优先级（UTF-8优先）
         encodings = [
+            ('utf-8', '尝试 UTF-8'),
+            ('gbk', '尝试 GBK'),
+            ('gb18030', '尝试 GB18030'),
+            ('gb2312', '尝试 GB2312'),
+            ('big5', '尝试 Big5'),
             ('utf-16', '尝试 UTF-16'),
             ('utf-16le', '尝试 UTF-16LE'),
             ('utf-16be', '尝试 UTF-16BE'),
-            ('gbk', '尝试 GBK'),
-            ('gb2312', '尝试 GB2312'),
-            ('big5', '尝试 Big5'),
-            ('utf-8', '尝试 UTF-8'),
-            ('gb18030', '尝试 GB18030'),
         ]
 
-        # 直接尝试所有编码，返回第一个能成功解码的
+        # 记录尝试过的编码和结果
+        all_attempts = []
+
         for enc, desc in encodings:
             try:
                 decoded = data.decode(enc)
-                print(f"✅ 使用 {desc} 解码成功")
-                return decoded
+                # 验证解码结果是否合理（包含常见歌词字符）
+                if self._is_valid_lyrics(decoded):
+                    print(f"✅ 使用 {desc} 解码成功")
+                    return decoded
+                else:
+                    # 虽然解码成功但内容可能不是有效歌词，记录下来备用
+                    all_attempts.append((enc, decoded))
+                    print(f"⚠️ {desc} 解码成功但内容异常，长度: {len(decoded)}")
             except Exception as e:
                 continue
 
-        # 如果所有编码都失败，返回 None
+        # 如果所有编码都失败，但至少有一个解码成功（即使内容可能异常）
+        if all_attempts:
+            # 选择解码结果最长的（通常歌词内容较长）
+            best_attempt = max(all_attempts, key=lambda x: len(x[1]))
+            print(f"⚠️ 使用备选解码 {best_attempt[0]}，内容可能不完整")
+            return best_attempt[1]
+
+        # 实在不行，尝试强制解码（忽略错误）
+        try:
+            forced = data.decode('utf-8', errors='ignore')
+            if len(forced) > 50:  # 至少有一定长度
+                print(f"⚠️ 使用强制 UTF-8 解码（忽略错误）")
+                return forced
+        except:
+            pass
+
         return None
 
     def extract_mp3_lyrics(self, file_path):
@@ -1877,179 +1941,279 @@ class Spider(Spider):
         return artist, song
 
     def get_lrc_for_audio(self, file_path):
-        """为音频文件获取歌词"""
+        """为音频文件获取歌词 - 增强调试版 + 更多歌词源"""
         filename = os.path.basename(file_path)
         ext = self.get_file_ext(file_path).lower()
 
-        print(f"🎵 开始为音频获取歌词: {filename}")
+        print(f"\n{'=' * 60}")
+        print(f"🎵 [歌词获取] 开始处理: {filename}")
+        print(f"{'=' * 60}")
 
         cache_key = hashlib.md5(f"audio_{file_path}".encode()).hexdigest()
 
         if cache_key in self.lrc_cache:
-            print(f"📦 使用缓存的歌词: {filename}")
+            print(f"📦 [缓存命中] 使用缓存的歌词: {filename}")
             return self.lrc_cache[cache_key]
 
-        # 第一步：查找同名的.lrc文件
-        lrc_path = os.path.splitext(file_path)[0] + '.lrc'
-        if os.path.exists(lrc_path):
-            lrc_content = self.read_lrc_file(lrc_path)
-            if lrc_content:
-                print(f"✅ 使用同名歌词文件: {lrc_path}")
-                self.lrc_cache[cache_key] = lrc_content
-                return lrc_content
-
-        # 第二步：查找同文件夹内的其他歌词文件
-        local_lrc_path = self.find_local_lrc(file_path)
-        if local_lrc_path:
-            lrc_content = self.read_lrc_file(local_lrc_path)
-            if lrc_content:
-                print(f"✅ 使用本地歌词: {local_lrc_path}")
-                self.lrc_cache[cache_key] = lrc_content
-                return lrc_content
-
-        # 第三步：尝试从文件内容提取内嵌歌词
-        embedded_lyrics = None
-        if ext == 'mp3':
-            embedded_lyrics = self.extract_mp3_lyrics(file_path)
-        elif ext == 'flac':
-            embedded_lyrics = self.extract_flac_lyrics(file_path)
-
-        if embedded_lyrics:
-            print(f"✅ 使用内嵌歌词")
-            self.lrc_cache[cache_key] = embedded_lyrics
-            return embedded_lyrics
-
-        # 第四步：网络搜索
+        # 从文件名提取歌手和歌曲名（用于网络搜索）
         artist, song = self.extract_song_info(filename)
-        net_cache_key = hashlib.md5(f"{artist}_{song}".encode()).hexdigest()
+        print(f"📝 [文件名解析] 歌手='{artist}', 歌曲='{song}'")
 
-        if net_cache_key in self.lrc_cache:
-            print(f"📦 使用缓存网络歌词: {artist} - {song}")
-            return self.lrc_cache[net_cache_key]
+        # ===== 第一步：网络搜索（最优先）=====
+        if artist or song:  # 只要有歌手或歌曲名就尝试搜索
+            net_cache_key = hashlib.md5(f"{artist}_{song}".encode()).hexdigest()
 
-        print(f"🎵 搜索网络歌词: 歌手='{artist}', 歌曲='{song}'")
-        lrc_content = self._search_lrc(artist, song)
+            if net_cache_key in self.lrc_cache:
+                print(f"📦 [网络缓存命中] {artist} - {song}")
+                self.lrc_cache[cache_key] = self.lrc_cache[net_cache_key]
+                return self.lrc_cache[net_cache_key]
 
-        if lrc_content:
-            self.lrc_cache[net_cache_key] = lrc_content
-            self.lrc_cache[cache_key] = lrc_content
-            return lrc_content
+            print(f"\n🌐 [网络搜索] 开始搜索歌词...")
+            print(f"   ├─ 歌手: {artist}")
+            print(f"   └─ 歌曲: {song}")
 
-        if artist:
-            print(f"🎵 尝试只用歌曲名搜索: {song}")
-            lrc_content = self._search_lrc("", song)
+            # 尝试多个歌词源
+            lrc_content = None
+
+            # 源1: 网易云音乐
+            print(f"\n   [源1] 尝试网易云音乐...")
+            lrc_content = self._netease_search(artist, song)
             if lrc_content:
+                print(f"   ✅ 网易云音乐成功!")
                 self.lrc_cache[net_cache_key] = lrc_content
                 self.lrc_cache[cache_key] = lrc_content
                 return lrc_content
 
-        print(f"❌ 未找到歌词: {filename}")
+            # 源2: QQ音乐
+            print(f"\n   [源2] 尝试QQ音乐...")
+            lrc_content = self._qq_search(artist, song)
+            if lrc_content:
+                print(f"   ✅ QQ音乐成功!")
+                self.lrc_cache[net_cache_key] = lrc_content
+                self.lrc_cache[cache_key] = lrc_content
+                return lrc_content
+
+            # 源3: 尝试只用歌曲名搜索网易云
+            if artist:
+                print(f"\n   [源3] 尝试只用歌曲名搜索网易云: {song}")
+                lrc_content = self._netease_search("", song)
+                if lrc_content:
+                    print(f"   ✅ 网易云成功 (仅歌曲名)!")
+                    self.lrc_cache[net_cache_key] = lrc_content
+                    self.lrc_cache[cache_key] = lrc_content
+                    return lrc_content
+
+            # 源4: 尝试只用歌曲名搜索QQ音乐
+            if artist:
+                print(f"\n   [源4] 尝试只用歌曲名搜索QQ音乐: {song}")
+                lrc_content = self._qq_search("", song)
+                if lrc_content:
+                    print(f"   ✅ QQ音乐成功 (仅歌曲名)!")
+                    self.lrc_cache[net_cache_key] = lrc_content
+                    self.lrc_cache[cache_key] = lrc_content
+                    return lrc_content
+
+            print(f"\n   ❌ 所有网络源都失败了")
+
+        # ===== 第二步：查找本地.lrc文件 =====
+        print(f"\n📁 [本地搜索] 查找本地歌词文件...")
+
+        # 查找同名的.lrc文件
+        lrc_path = os.path.splitext(file_path)[0] + '.lrc'
+        if os.path.exists(lrc_path):
+            print(f"   ├─ 找到同名歌词: {lrc_path}")
+            lrc_content = self.read_lrc_file(lrc_path)
+            if lrc_content:
+                print(f"   ✅ 读取成功! 长度: {len(lrc_content)} 字符")
+                self.lrc_cache[cache_key] = lrc_content
+                return lrc_content
+            else:
+                print(f"   ⚠️ 读取失败")
+
+        # 查找同文件夹内的其他歌词文件
+        local_lrc_path = self.find_local_lrc(file_path)
+        if local_lrc_path:
+            print(f"   ├─ 找到本地歌词: {local_lrc_path}")
+            lrc_content = self.read_lrc_file(local_lrc_path)
+            if lrc_content:
+                print(f"   ✅ 读取成功! 长度: {len(lrc_content)} 字符")
+                self.lrc_cache[cache_key] = lrc_content
+                return lrc_content
+
+        print(f"   ❌ 未找到本地歌词文件")
+
+        # ===== 第三步：尝试从文件内容提取内嵌歌词（最后）=====
+        print(f"\n💾 [内置歌词] 尝试提取内嵌歌词...")
+        embedded_lyrics = None
+
+        if ext == 'mp3':
+            print(f"   ├─ 文件格式: MP3")
+            embedded_lyrics = self.extract_mp3_lyrics(file_path)
+        elif ext == 'flac':
+            print(f"   ├─ 文件格式: FLAC")
+            embedded_lyrics = self.extract_flac_lyrics(file_path)
+        else:
+            print(f"   ├─ 文件格式: {ext} (不支持内置歌词)")
+
+        if embedded_lyrics:
+            print(f"   ✅ 内置歌词提取成功! 长度: {len(embedded_lyrics)} 字符")
+            self.lrc_cache[cache_key] = embedded_lyrics
+            return embedded_lyrics
+        else:
+            print(f"   ❌ 未找到内置歌词或提取失败")
+
+        print(f"\n❌ [最终结果] 未找到任何歌词: {filename}")
+        print(f"{'=' * 60}\n")
         return None
 
-    def _search_lrc(self, artist, song):
-        """搜索歌词"""
-        keywords = []
-        if artist:
-            keywords.append(artist)
-        if song:
-            keywords.append(song)
-
-        keyword = ' '.join(keywords)
+    def _netease_search(self, artist, song):
+        """增强版网易云音乐搜索"""
+        keyword = f"{artist} {song}".strip()
         if not keyword:
             return None
 
-        lrc = self._netease_search(keyword)
-        if lrc:
-            return lrc
+        print(f"      ├─ 搜索关键词: {keyword}")
 
-        lrc = self._qq_search(keyword)
-        if lrc:
-            return lrc
-
-        return None
-
-    def _netease_search(self, keyword):
-        """网易云音乐搜索"""
         try:
+            # 第一步：搜索歌曲
             url = "https://music.163.com/api/search/get/web"
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Referer": "https://music.163.com/"
+                "Referer": "https://music.163.com/",
+                "Content-Type": "application/x-www-form-urlencoded"
             }
             data = {
                 "s": keyword,
                 "type": 1,
                 "offset": 0,
-                "limit": 3
+                "limit": 5  # 增加返回数量
             }
 
-            resp = self.session.post(url, data=data, headers=headers, timeout=5)
+            import urllib.parse
+            data_str = urllib.parse.urlencode(data)
+
+            resp = self.session.post(url, data=data_str, headers=headers, timeout=8)
+            print(f"      ├─ 搜索状态码: {resp.status_code}")
+
             if resp.status_code == 200:
                 result = resp.json()
-                if result['code'] == 200 and result['result']['songs']:
-                    song = result['result']['songs'][0]
-                    song_id = song['id']
+                if result['code'] == 200 and result['result']['songCount'] > 0:
+                    songs = result['result']['songs']
+                    print(f"      ├─ 找到 {len(songs)} 首歌曲")
 
-                    lrc_url = "https://music.163.com/api/song/lyric"
-                    params = {
-                        "id": song_id,
-                        "lv": 1,
-                        "kv": 1
-                    }
+                    for idx, song in enumerate(songs[:3]):  # 尝试前3首
+                        song_name = song['name']
+                        song_id = song['id']
+                        artists = [a['name'] for a in song['artists']]
+                        print(f"      ├─ 候选{idx + 1}: {song_name} - {', '.join(artists)}")
 
-                    lrc_resp = self.session.get(lrc_url, params=params, headers=headers, timeout=5)
-                    if lrc_resp.status_code == 200:
-                        lrc_data = lrc_resp.json()
-                        if 'lrc' in lrc_data and lrc_data['lrc']['lyric']:
-                            lrc = lrc_data['lrc']['lyric']
-                            if len(lrc) > 100:
-                                print(f"✅ 网易云获取成功: {song['name']}")
-                                return lrc
+                        # 第二步：获取歌词
+                        lrc_url = "https://music.163.com/api/song/lyric"
+                        params = {
+                            "id": song_id,
+                            "lv": 1,
+                            "kv": 1
+                        }
+
+                        lrc_resp = self.session.get(lrc_url, params=params, headers=headers, timeout=5)
+                        if lrc_resp.status_code == 200:
+                            lrc_data = lrc_resp.json()
+                            if 'lrc' in lrc_data and lrc_data['lrc']['lyric']:
+                                lrc = lrc_data['lrc']['lyric']
+                                if len(lrc) > 50:  # 至少有一定长度
+                                    print(f"      ├─ 歌词获取成功! 长度: {len(lrc)}")
+                                    return lrc
+                                else:
+                                    print(f"      ├─ 歌词太短: {len(lrc)}字符")
+                        else:
+                            print(f"      ├─ 歌词请求失败: {lrc_resp.status_code}")
+                else:
+                    print(f"      ├─ 未找到歌曲, code={result['code']}")
+            else:
+                print(f"      ├─ 请求失败: {resp.status_code}")
+
         except Exception as e:
-            print(f"网易云搜索异常: {e}")
+            print(f"      ├─ 异常: {e}")
+
         return None
 
-    def _qq_search(self, keyword):
-        """QQ音乐搜索"""
+    def _qq_search(self, artist, song):
+        """增强版QQ音乐搜索"""
+        keyword = f"{artist} {song}".strip()
+        if not keyword:
+            return None
+
+        print(f"      ├─ 搜索关键词: {keyword}")
+
         try:
-            url = "https://c.y.qq.com/soso/fcgi-bin/client_search_cp"
+            # 第一步：搜索歌曲
+            search_url = "https://c.y.qq.com/soso/fcgi-bin/client_search_cp"
             params = {
                 "w": keyword,
                 "format": "json",
                 "p": 1,
-                "n": 3
+                "n": 5,  # 增加返回数量
+                "platform": "h5",
+                "needNewCode": 1
             }
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Referer": "https://y.qq.com/"
+                "Referer": "https://y.qq.com/",
+                "Origin": "https://y.qq.com"
             }
 
-            resp = self.session.get(url, params=params, headers=headers, timeout=5)
+            resp = self.session.get(search_url, params=params, headers=headers, timeout=8)
+            print(f"      ├─ 搜索状态码: {resp.status_code}")
+
             if resp.status_code == 200:
                 data = resp.json()
                 if data['code'] == 0 and data['data']['song']['list']:
-                    song = data['data']['song']['list'][0]
-                    song_mid = song['songmid']
+                    songs = data['data']['song']['list']
+                    print(f"      ├─ 找到 {len(songs)} 首歌曲")
 
-                    lrc_url = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg"
-                    params = {
-                        "songmid": song_mid,
-                        "format": "json"
-                    }
+                    for idx, song in enumerate(songs[:3]):  # 尝试前3首
+                        song_name = song['songname']
+                        song_mid = song['songmid']
+                        singers = [s['name'] for s in song['singer']]
+                        print(f"      ├─ 候选{idx + 1}: {song_name} - {', '.join(singers)}")
 
-                    lrc_resp = self.session.get(lrc_url, params=params, headers=headers, timeout=5)
-                    if lrc_resp.status_code == 200:
-                        text = lrc_resp.text
-                        match = re.search(r'({.*})', text)
-                        if match:
-                            lrc_data = json.loads(match.group(1))
-                            if 'lyric' in lrc_data and lrc_data['lyric']:
-                                lrc = base64.b64decode(lrc_data['lyric']).decode('utf-8')
-                                if len(lrc) > 100:
-                                    print(f"✅ QQ音乐获取成功: {song['name']}")
-                                    return lrc
+                        # 第二步：获取歌词
+                        lrc_url = "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg"
+                        params = {
+                            "songmid": song_mid,
+                            "format": "json",
+                            "platform": "yqq",
+                            "needNewCode": 0
+                        }
+
+                        # QQ音乐需要特定的Referer
+                        lrc_headers = headers.copy()
+                        lrc_headers["Referer"] = "https://y.qq.com/portal/player.html"
+
+                        lrc_resp = self.session.get(lrc_url, params=params, headers=lrc_headers, timeout=5)
+                        if lrc_resp.status_code == 200:
+                            text = lrc_resp.text
+                            # QQ音乐返回的是JSONP格式，需要提取JSON
+                            match = re.search(r'({.*})', text)
+                            if match:
+                                lrc_data = json.loads(match.group(1))
+                                if 'lyric' in lrc_data and lrc_data['lyric']:
+                                    lrc = base64.b64decode(lrc_data['lyric']).decode('utf-8')
+                                    if len(lrc) > 50:
+                                        print(f"      ├─ 歌词获取成功! 长度: {len(lrc)}")
+                                        return lrc
+                                    else:
+                                        print(f"      ├─ 歌词太短: {len(lrc)}字符")
+                        else:
+                            print(f"      ├─ 歌词请求失败: {lrc_resp.status_code}")
+                else:
+                    print(f"      ├─ 未找到歌曲, code={data['code']}")
+            else:
+                print(f"      ├─ 请求失败: {resp.status_code}")
+
         except Exception as e:
-            print(f"QQ音乐搜索异常: {e}")
+            print(f"      ├─ 异常: {e}")
+
         return None
 
     # ==================== 新增：获取歌曲海报 ====================
@@ -3158,13 +3322,15 @@ class Spider(Spider):
             if os.path.exists(file_path) and self.is_audio_file(self.get_file_ext(file_path)):
                 self.log(f"🔍 正在为音频文件获取信息: {os.path.basename(file_path)}")
 
-                # 获取歌词
+                # 获取歌词（使用新的优先网络逻辑）
                 lrc = self.get_lrc_for_audio(file_path)
                 if lrc:
                     if isinstance(lrc, (list, tuple)):
                         lrc = '\n'.join(lrc)
                     result["lrc"] = lrc
                     self.log(f"✅ 歌词已添加")
+                else:
+                    self.log(f"⚠️ 未找到歌词")
 
                 # 新增：获取歌曲海报
                 filename = os.path.basename(file_path)
